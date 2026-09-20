@@ -17,6 +17,7 @@ import {
   FileText,
   FolderOpen,
   House,
+  LoaderCircle,
   Pause,
   Play,
   Plus,
@@ -48,7 +49,6 @@ import { Logo } from "./Logo";
 import { Home } from "./components/Home";
 import { Canvas } from "./components/Canvas";
 import { useCanvasImageAttachments } from "./hooks/useCanvasImageAttachments";
-import { CanvasPreparation } from "./components/CanvasPreparation";
 import { CanvasSuggestionPreview } from "./components/CanvasSuggestionPreview";
 import { ContextualAnswer } from "./components/ContextualAnswer";
 import { IntentResponse } from "./components/IntentResponse";
@@ -267,7 +267,6 @@ export function App() {
   const flushCanvas = canvasDrafts.flush;
   const [canvasSources, setCanvasSources] = useState<Record<string, SourceRecord[]>>({});
   const [canvasRequests, setCanvasRequests] = useState<Record<string, string>>({});
-  const [canvasPrompts, setCanvasPrompts] = useState<Record<string, string>>({});
   const [canvasNextStepsRequested, setCanvasNextStepsRequested] = useState<Record<string, boolean>>({});
   const [canvasContextSteps, setCanvasContextSteps] = useState<Record<string, CanvasSuggestionRefreshScope | undefined>>({});
   const [canvasLearningScopes, setCanvasLearningScopes] = useState<Record<string, CanvasSuggestionRefreshScope | undefined>>({});
@@ -279,6 +278,10 @@ export function App() {
   const canvasRequest = task ? canvasRequests[task.id] ?? "" : "";
   const nextStepsResponse = task && canvasNextStepsRequested[task.id] ? assistance.responses[task.id] : undefined;
   const canvasPending = !!task && (initializingCanvas === task.id || !!assistance.requesting[task.id] || intentIsRunning(assistance.responses[task.id]) || !!nextStepsResponse?.proposals.some(proposal => proposal.status === "ready" || proposal.status === "applying"));
+  const inputPending = canvasPending && !(task && canvasLearningScopes[task.id]);
+  const activeCanvasProposals = task ? assistance.responses[task.id]?.proposals.filter(proposal => proposal.kind === "canvas" && proposal.status !== "discarded" && proposal.status !== "applied") : undefined;
+  const onlyCanvasProposal = activeCanvasProposals?.length === 1 ? activeCanvasProposals[0] : undefined;
+  const canvasAdditionProposal = onlyCanvasProposal?.beforeCanvas && onlyCanvasProposal.canvas?.blocks.some(block => !onlyCanvasProposal.beforeCanvas!.blocks.some(before => before.id === block.id)) ? onlyCanvasProposal : undefined;
   const currentContextScope = task ? canvasContextSteps[task.id] : undefined;
   const nextStepsState: CanvasNextStepsState = !task || !canvasNextStepsRequested[task.id] ? "idle" : canvasPending ? "loading" : assistance.messages[task.id] ? "error" :
     nextStepsResponse?.status === "complete" ? nextStepsResponse.proposals[0]?.status === "applied" ? ((canvasDrafts.document(task)?.suggestions ?? []).some(choice => !currentContextScope || choice.targetBlockId === currentContextScope.blockId) ? "ready" : "empty") : "error" :
@@ -777,7 +780,7 @@ export function App() {
       const result = await command({ type: "CreateTask", requestId: uid(), title: text.length > 65 ? text.slice(0, 62) + "…" : text, description: text.slice(0, 1000), kind: "note" });
       const created = result.snapshot.tasks.find(item => item.id === result.snapshot.activeTaskId)!;
       setInitializingCanvas(created.id);
-      setCanvasPrompts(previous => ({ ...previous, [created.id]: text }));
+      setCanvasRequests(previous => ({ ...previous, [created.id]: text }));
       await command({ type: "SaveCheckpoint", requestId: uid(), taskId: created.id, expectedEpoch: created.epoch, expectedRevision: 0, checkpoint: { layout: "work", selectedActivity: "canvas", returnAnchors: [] } });
       closeOverlay(); setActivity("canvas");
       return result.snapshot.activeTaskId!;
@@ -946,7 +949,6 @@ export function App() {
       setHiddenResponses(previous => ({ ...previous, [taskId]: undefined }));
       setCanvasContextSteps(previous => ({ ...previous, [taskId]: mode === "suggestions" ? capturedScope : undefined }));
       if (suggestion?.prepared) suggestionTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      if (mode === "canvas") setCanvasPrompts(previous => ({ ...previous, [taskId]: textValue }));
       return enqueue(async () => {
         await flushCanvas(taskId);
         await flushNote({ taskId });
@@ -1768,14 +1770,20 @@ export function App() {
             requestPending={canvasPending}
             onLearnAboutSelection={scope => { if (!canvasPending) void submitIntent("Explain the idea in this selected passage briefly. Distinguish established knowledge from uncertainty; do not change my writing.", "learn", undefined, scope); }}
             onAskAboutSelection={(text, scope) => { void submitIntent(text, "selection", undefined, scope); }}
-            selectionInsight={canvasLearningScopes[task.id] && !assistance.responses[task.id]?.proposals.some(proposal => proposal.kind === "canvas" && proposal.status !== "discarded") ? { scope: canvasLearningScopes[task.id]!, content: <ContextualAnswer response={assistance.responses[task.id]} message={assistance.messages[task.id]} pending={canvasPending} onDismiss={() => dismissAssistance(task.id)} onOpenSource={sourceId => openAnswerSource(task.id, sourceId)} /> } : undefined}
+            selectionInsight={canvasLearningScopes[task.id] && !assistance.responses[task.id]?.proposals.some(proposal => proposal.kind === "canvas" && proposal.status !== "discarded") ? { scope: canvasLearningScopes[task.id]!, pending: canvasPending, onCancel: () => assistance.cancel(task.id), content: canvasPending ? null : <ContextualAnswer response={assistance.responses[task.id]} message={assistance.messages[task.id]} onDismiss={() => dismissAssistance(task.id)} onOpenSource={sourceId => openAnswerSource(task.id, sourceId)} /> } : undefined}
             onRequestContextSteps={scope => { if (!canvasPending) void submitIntent(scope.selection
               ? "Suggest one clearer version of this selected passage using plain language. Preserve my meaning, voice, facts, and uncertainty. If it is already clear, leave it unchanged."
               : "Suggest useful next steps for this item. Prepare exact options I can choose while keeping the current work unchanged.", "suggestions", undefined, scope); }}
             contextSteps={currentContextScope ? { scope: currentContextScope, state: nextStepsState, message: nextStepsMessage } : undefined}
             onCancelContextSteps={() => { assistance.cancel(task.id); setCanvasNextStepsRequested(previous => ({ ...previous, [task.id]: false })); setCanvasContextSteps(previous => ({ ...previous, [task.id]: undefined })); }}
             onRequestSuggestion={suggestion => { if (!canvasPending) void submitIntent(suggestion.request, "canvas", suggestion); }}
+            proposedChange={canvasAdditionProposal ? {
+              proposal: canvasAdditionProposal,
+              onKeep: () => reviewCanvasSuggestion(task.id, assistance.responses[task.id]!.requestId, canvasAdditionProposal.id, "apply"),
+              onDismiss: () => reviewCanvasSuggestion(task.id, assistance.responses[task.id]!.requestId, canvasAdditionProposal.id, "discard"),
+            } : undefined}
             suggestionPreview={(() => {
+              if (canvasAdditionProposal) return undefined;
               const response = assistance.responses[task.id];
               const proposals = response?.proposals.filter(item => item.kind === "canvas" && item.status !== "discarded" && item.status !== "applied");
               if (!response || !proposals?.length) return undefined;
@@ -1795,9 +1803,7 @@ export function App() {
             saveState={canvasDrafts.errors[task.id] ? "error" : canvasDrafts.hasDraft(task.id) ? "saving" : "saved"}
             saveMessage={canvasDrafts.errors[task.id]} onUndo={() => void undo()}
             canUndo={snapshot.recentActions.some(item => item.taskId === task.id && item.undoable && !item.undone)} /> :
-            canvasPending ? <CanvasPreparation request={canvasPrompts[task.id] || task.description}
-              message={assistance.responses[task.id]?.message} onCancel={() => { ++navigationGeneration.current; setInitializingCanvas(null); assistance.cancel(task.id); }} /> :
-            <div className="canvas-empty"><span className="eyebrow">A PLACE TO BEGIN</span><h1>Make room for<br /><em>your next thought.</em></h1><p>Start writing, or ask Eve to bring the tools you need into this space.</p><button className="canvas-secondary-button" onClick={() => canvasDrafts.queue(task.id, { version: 1, title: task.title, subtitle: "", layout: "focus", blocks: [{ id: uid(), kind: "text", title: "", body: "", placement: "main", pinned: false, sourceIds: [] }] })}><FileText size={15} />Start with a blank page</button></div>}
+            <div className="canvas-empty"><span className="eyebrow">A PLACE TO BEGIN</span><h1>Make room for<br /><em>your next thought.</em></h1><p>Start writing, or ask Eve to bring the tools you need into this space.</p><button className="canvas-secondary-button" onClick={() => { if (canvasPending) { ++navigationGeneration.current; setInitializingCanvas(null); assistance.cancel(task.id); } canvasDrafts.queue(task.id, { version: 1, title: task.title, subtitle: "", layout: "focus", blocks: [{ id: uid(), kind: "text", title: "", body: "", placement: "main", pinned: false, sourceIds: [] }] }); }}><FileText size={15} />Start with a blank page</button></div>}
           {canvasDrafts.errors[task.id] && <div className="canvas-save-recovery" role="alert">
             <p>{canvasDrafts.errors[task.id]}</p>
             {task.canvas?.document && <details><summary>Review the saved canvas</summary><Canvas document={task.canvas.document} assets={taskAssets[task.id] ?? []} sources={canvasSources[task.id] ?? []} onChange={() => {}} disabled /></details>}
@@ -1811,7 +1817,6 @@ export function App() {
             <span>{state.message || "An earlier image attachment needs checking."}</span>
             <button className="quiet-button" aria-disabled={state.pending} onClick={() => { if (!state.pending) imageAttachments.check(task.id, blockId); }}>Check previous image attachment</button>
           </div>)}
-          {canvasPending && canvasDrafts.document(task) && !canvasNextStepsRequested[task.id] && !canvasLearningScopes[task.id] && <CanvasPreparation compact message={assistance.responses[task.id]?.message} onCancel={() => assistance.cancel(task.id)} />}
           {!canvasPending && !canvasNextStepsRequested[task.id] && !canvasLearningScopes[task.id] && (assistance.responses[task.id] || assistance.messages[task.id]) && hiddenResponses[task.id] !== (assistance.responses[task.id]?.requestId ?? `message:${assistance.messages[task.id] || ""}`) && !assistance.responses[task.id]?.proposals.some(item => item.kind === "canvas" && item.status !== "discarded") && <div className="inline-assistance-result">
             <ContextualAnswer response={assistance.responses[task.id]} message={assistance.messages[task.id]} onDismiss={() => dismissAssistance(task.id)} onOpenSource={sourceId => openAnswerSource(task.id, sourceId)} />
           </div>}
@@ -1999,7 +2004,7 @@ export function App() {
           })}
         </div>
         {task && activity !== "canvas" && !assistance.responses[task.id] && assistance.messages[task.id] && hiddenResponses[task.id] !== `message:${assistance.messages[task.id]}` && <div className="inline-assistance-result"><ContextualAnswer message={assistance.messages[task.id]} onDismiss={() => dismissAssistance(task.id)} onOpenSource={() => {}} /></div>}
-        {task && !canvasLearningScopes[task.id] && !canvasNextStepsRequested[task.id] && assistance.responses[task.id] && hiddenResponses[task.id] !== (assistance.responses[task.id]?.requestId ?? `message:${assistance.messages[task.id] || ""}`) && (activity !== "canvas" || assistance.responses[task.id]!.proposals.some(item => item.kind !== "canvas" || !canvasDrafts.document(task))) && <aside className="inline-work-review" aria-label="Review beside your work">
+        {task && !canvasPending && !canvasLearningScopes[task.id] && !canvasNextStepsRequested[task.id] && assistance.responses[task.id] && hiddenResponses[task.id] !== (assistance.responses[task.id]?.requestId ?? `message:${assistance.messages[task.id] || ""}`) && (activity !== "canvas" || assistance.responses[task.id]!.proposals.some(item => item.kind !== "canvas" || !canvasDrafts.document(task))) && <aside className="inline-work-review" aria-label="Review beside your work">
           <IntentResponse response={{ ...assistance.responses[task.id]!, proposals: assistance.responses[task.id]!.proposals.filter(item => activity !== "canvas" || item.kind !== "canvas" || !canvasDrafts.document(task)) }} inline
             busy={!!assistance.requesting[task.id]} onApply={proposalId => reviewCanvasSuggestion(task.id, assistance.responses[task.id]!.requestId, proposalId, "apply")}
             onDiscard={proposalId => reviewCanvasSuggestion(task.id, assistance.responses[task.id]!.requestId, proposalId, "discard")} onOpenSource={sourceId => openAnswerSource(task.id, sourceId)} />
@@ -2034,9 +2039,9 @@ export function App() {
               {notice}
             </div>
           ) : null}
-          {task && <form className="canvas-prompt" aria-label="Ask Eve" onSubmit={event => { event.preventDefault(); if (!canvasRequest.trim() || canvasPending) return; const request = canvasRequest; const owner = task.id; void submitIntent(request, activity === "canvas" ? "canvas" : "ask")?.then(receipt => { if (receipt) setCanvasRequests(previous => previous[owner] === request ? { ...previous, [owner]: "" } : previous); }); }}>
-            <Sparkles size={16} /><input ref={requestInput} aria-label="Ask Eve" placeholder="Ask Eve…" value={canvasRequest} maxLength={16000} onChange={event => setCanvasRequest(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault(); }} />
-            {canvasPending ? <button type="button" className="canvas-prompt-submit canvas-prompt-cancel" aria-label="Cancel request" onClick={() => assistance.cancel(task.id)}><X size={16} /></button> : <button className="canvas-prompt-submit" aria-label="Send request to Eve" disabled={!canvasRequest.trim()}><ArrowUp size={16} /></button>}
+          {task && <form className="canvas-prompt" aria-label="Ask Eve" aria-busy={inputPending} data-pending={inputPending} onSubmit={event => { event.preventDefault(); if (!canvasRequest.trim() || canvasPending) return; const request = canvasRequest; const owner = task.id; void submitIntent(request, activity === "canvas" ? "canvas" : "ask")?.then(receipt => { if (receipt) setCanvasRequests(previous => previous[owner] === request ? { ...previous, [owner]: "" } : previous); }); }}>
+            {inputPending ? <LoaderCircle size={16} className="canvas-prompt-spinner" aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}<input ref={requestInput} aria-label="Ask Eve" placeholder={inputPending ? "Thinking…" : "Ask Eve…"} value={canvasRequest} maxLength={16000} onChange={event => setCanvasRequest(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault(); }} />
+            {inputPending ? <button type="button" className="canvas-prompt-submit canvas-prompt-cancel" aria-label="Cancel request" onClick={() => { if (initializingCanvas === task.id) { ++navigationGeneration.current; setInitializingCanvas(null); } assistance.cancel(task.id); }}><X size={16} /></button> : <button className="canvas-prompt-submit" aria-label="Send request to Eve" disabled={canvasPending || !canvasRequest.trim()}><ArrowUp size={16} /></button>}
           </form>}
 
         </div>

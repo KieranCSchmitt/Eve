@@ -329,6 +329,11 @@ for (const [width, height] of [
       direction: node.selectionDirection,
     }));
     await askSelection(page);
+    await expect(page.getByRole("form", { name: "Ask about selected text", exact: true })).toHaveAttribute("aria-busy", "true");
+    await expect(page.getByRole("form", { name: "Ask Eve", exact: true })).toHaveAttribute("aria-busy", "false");
+    await expect(page.locator(".canvas-preparation,.canvas-context-insight,.inline-work-review")).toHaveCount(0);
+    await expect(answer(page)).toHaveCount(0);
+    await expect(selectionPrompt(page)).toBeFocused();
     await expect
       .poll(() =>
         page.evaluate(
@@ -364,6 +369,7 @@ for (const [width, height] of [
         : undefined,
     );
     await expect(answer(page)).toContainText("General knowledge");
+    await expect(page.getByRole("form", { name: "Ask about selected text", exact: true })).toHaveAttribute("aria-busy", "false");
     await expect(selectionPrompt(page)).toBeFocused();
     expect(
       await writer(page).evaluate(
@@ -530,6 +536,55 @@ for (const [width, height] of [
       })),
     ).toEqual({ asks: 1, writes: 0 });
   });
+
+test("thinking stays in the footer input through dispatch and generation without adding a canvas card", async ({ page }) => {
+  await mount(page);
+  const before = await page.locator("[data-canvas-block-id='writing']").boundingBox();
+  const inputIdentity = await footer(page).elementHandle();
+  await footer(page).fill("Make a graphic that explains the writing.");
+  await footer(page).press("Enter");
+  await expect(page.getByRole("form", { name: "Ask Eve", exact: true })).toHaveAttribute("aria-busy", "true");
+  await expect(page.locator(".canvas-prompt-spinner")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancel request", exact: true })).toBeVisible();
+  await expect(page.locator(".canvas-preparation,.contextual-answer,.inline-work-review")).toHaveCount(0);
+  await expect(footer(page)).toBeFocused();
+  expect(await footer(page).evaluate((node, original) => node === original, inputIdentity)).toBe(true);
+  expect(await page.locator("[data-canvas-block-id='writing']").boundingBox()).toEqual(before);
+  await page.evaluate(() => {
+    const w = window as unknown as FlowWindow;
+    w.fixture.publishIntelligence({ type: "intent", response: { ...w.fixture.asks.at(-1)!, status: "running", message: "Considering the request…", citations: [], proposals: [] } });
+  });
+  await expect(page.getByRole("form", { name: "Ask Eve", exact: true })).toHaveAttribute("aria-busy", "true");
+  await expect(page.locator(".canvas-preparation,.contextual-answer,.inline-work-review")).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel request", exact: true }).click();
+  await expect(page.getByRole("form", { name: "Ask Eve", exact: true })).toHaveAttribute("aria-busy", "false");
+  await expect.poll(() => page.evaluate(() => (window as unknown as FlowWindow).fixture.cancelled.length)).toBe(1);
+  await expect(writer(page)).toHaveValue(body);
+  expect(await requestCounts(page)).toMatchObject({ asks: 1, writes: 0, approved: 0 });
+});
+
+test("the selection input cancels its pending request without moving focus or losing the passage", async ({ page }) => {
+  await mount(page);
+  await page.evaluate(() => { (window as unknown as FlowWindow).fixture.receiptDelay = true; });
+  await selectPassage(page);
+  await askSelection(page);
+  const form = page.getByRole("form", { name: "Ask about selected text", exact: true });
+  await expect(form).toHaveAttribute("aria-busy", "true");
+  await expect.poll(() => requestCounts(page)).toMatchObject({ asks: 1 });
+  await expect(page.locator(".canvas-context-insight,.canvas-preparation,.contextual-answer")).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel selection request", exact: true }).click();
+  await expect(form).toHaveAttribute("aria-busy", "false");
+  await expect(selectionPrompt(page)).toBeFocused();
+  await expect(selectionPrompt(page)).toHaveValue(explanationRequest);
+  await page.evaluate(() => {
+    const w = window as unknown as FlowWindow;
+    w.fixture.releaseReceipt(w.fixture.asks.at(-1)!.requestId);
+  });
+  await expect.poll(() => page.evaluate(() => (window as unknown as FlowWindow).fixture.cancelled.length)).toBe(1);
+  expect(await writer(page).evaluate((node: HTMLTextAreaElement) => [node.selectionStart, node.selectionEnd])).toEqual([0, selected.length]);
+  await expect(writer(page)).toHaveValue(body);
+  expect(await requestCounts(page)).toMatchObject({ asks: 1, writes: 0, approved: 0 });
+});
 
 test("A typed selection request waits for the exact edited passage to save before scoped host dispatch", async ({
   page,

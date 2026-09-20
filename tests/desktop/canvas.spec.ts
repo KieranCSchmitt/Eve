@@ -2725,3 +2725,115 @@ test("contextual passage choices preserve other saved plans and native editors t
   expect(requests).toHaveLength(2);
   expect(providerErrors).toEqual([]);
 });
+
+test("footer thinking stays in its input and a native graphic preview keeps writing through Keep, Undo and restart", async ({}, info) => {
+  const homePrompt = "I need to write an essay about dogs dreaming";
+  const original = "Dogs enter REM sleep, but what they dream about remains uncertain.";
+  const addition = " I want to separate observation from inference.";
+  await page.getByRole("textbox", { name: "What would you like to make?", exact: true }).fill(homePrompt);
+  await page.getByRole("button", { name: "Create with Eve", exact: true }).click();
+  const writer = page.getByRole("textbox", { name: "Canvas text", exact: true });
+  await expect(writer).toBeVisible();
+  expect(requests).toHaveLength(0);
+  await writer.fill(original);
+  await expect(page.locator(".canvas-status")).toContainText("Saved");
+  await page.getByRole("textbox", { name: "Ask Eve", exact: true }).focus();
+  await writer.focus();
+  await writer.evaluate(element => { const field = element as HTMLTextAreaElement; field.setSelectionRange(field.value.length, field.value.length); });
+  await page.keyboard.insertText(addition);
+  await expect(page.locator(".canvas-status")).toContainText("Saved");
+  const authored = original + addition;
+  await expect.poll(async () => (await current()).canvas!.document!.blocks.find(block => block.kind === "text")?.body).toBe(authored);
+  const before = await current();
+  const writerIdentity = await writer.elementHandle();
+  const graphic: CanvasDocument["blocks"][number] = {
+    ...blockBase, id: "rem-dream-graphic", kind: "design", title: "REM sleep and dream content", width: 900, height: 420, background: "#F5F7FC",
+    layers: [
+      { id: "observed", name: "Observed", kind: "text", x: 40, y: 70, width: 820, height: 100, text: "Observed: REM sleep", fontFamily: "sans", fontSize: 36, fontWeight: "regular", color: "#315B80", align: "left" },
+      { id: "uncertain", name: "Uncertain", kind: "text", x: 40, y: 240, width: 820, height: 100, text: "Uncertain: dream content", fontFamily: "sans", fontSize: 36, fontWeight: "regular", color: "#536477", align: "left" },
+    ],
+  };
+  replyDocument = (_data, target) => ({ ...target.canvas!, blocks: [...target.canvas!.blocks, graphic] });
+  holdResponses = true;
+  const prompt = page.getByRole("textbox", { name: "Ask Eve", exact: true });
+  const promptForm = page.getByRole("form", { name: "Ask Eve", exact: true });
+  await prompt.fill("Make a REM sleep graphic for review without applying it.");
+  await prompt.press("Enter");
+  await expect.poll(() => requests.length).toBe(1);
+  await expect(promptForm).toHaveAttribute("aria-busy", "true");
+  await expect(promptForm.locator(".canvas-prompt-spinner")).toBeVisible();
+  await expect(page.locator(".canvas-preparation,.contextual-answer,.inline-work-review")).toHaveCount(0);
+  await expect(prompt).toBeFocused();
+  expect((await current()).canvas).toEqual(before.canvas);
+  await page.screenshot({ path: info.outputPath("native-input-thinking.png") });
+
+  await writer.focus();
+  await writer.evaluate(element => (element as HTMLTextAreaElement).setSelectionRange(0, 4, "backward"));
+  holdResponses = false;
+  deferred.splice(0).forEach(release => release());
+  const proposed = page.locator('[data-canvas-block-id="rem-dream-graphic"]');
+  await expect(proposed).toHaveAttribute("data-proposed", "true");
+  await expect(proposed.locator("[data-design-stage]")).toBeVisible();
+  await expect(proposed.locator(".design-text-preview").filter({ hasText: "Observed: REM sleep" })).toBeVisible();
+  await expect(page.locator(".canvas-suggestion-preview,.canvas-arrangement-preview,.canvas-preparation")).toHaveCount(0);
+  await expect(promptForm).toHaveAttribute("aria-busy", "false");
+  await expect(writer).toBeFocused();
+  expect(await writer.evaluate((element, retained) => element === retained, writerIdentity)).toBe(true);
+  expect(await writer.evaluate(element => { const field = element as HTMLTextAreaElement; return [field.selectionStart, field.selectionEnd, field.selectionDirection]; })).toEqual([0, 4, "backward"]);
+  expect((await current()).canvas).toEqual(before.canvas);
+  await page.screenshot({ path: info.outputPath("native-proposed-graphic.png") });
+  await proposed.getByRole("button", { name: "Keep", exact: true }).click();
+  await expect(proposed).not.toHaveAttribute("data-proposed", "true");
+  await expect.poll(async () => (await current()).canvas!.revision).toBe(before.canvas!.revision + 1);
+  const kept = await current();
+  expect(kept.canvas!.document!.blocks).toEqual([...before.canvas!.document!.blocks, graphic]);
+  expect(requests).toHaveLength(1);
+  await expect(writer).toBeFocused();
+  expect(await writer.evaluate((element, retained) => element === retained, writerIdentity)).toBe(true);
+  expect(await writer.evaluate(element => { const field = element as HTMLTextAreaElement; return [field.selectionStart, field.selectionEnd, field.selectionDirection]; })).toEqual([0, 4, "backward"]);
+
+  await page.locator(".canvas-footer").getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(proposed).toHaveCount(0);
+  await expect.poll(async () => (await current()).canvas!.document).toEqual(before.canvas!.document);
+  const nativeHistory = await page.evaluateHandle(() => {
+    const events: Array<{ inputType: string; target: string | null }> = [];
+    document.addEventListener("input", event => {
+      if (event instanceof InputEvent && ["historyUndo", "historyRedo"].includes(event.inputType))
+        events.push({ inputType: event.inputType, target: (event.target as HTMLElement).getAttribute("aria-label") });
+    });
+    return events;
+  });
+  // Chromium's native history is chronological across inputs. The question was
+  // typed after the writing, so its edit is undone before the writer's suffix.
+  await writer.focus();
+  await writer.press("ControlOrMeta+z");
+  await expect(prompt).toBeFocused();
+  await expect(writer).toHaveValue(authored);
+  expect(await nativeHistory.evaluate(events => events)).toEqual([{ inputType: "historyUndo", target: "Ask Eve" }]);
+  await writer.focus();
+  await writer.press("ControlOrMeta+z");
+  await expect(writer).toHaveValue(original);
+  await writer.press("ControlOrMeta+Shift+z");
+  await expect(writer).toHaveValue(authored);
+  const nativeHistoryEvents = await nativeHistory.evaluate(events => events);
+  expect(nativeHistoryEvents).toEqual([
+    { inputType: "historyUndo", target: "Ask Eve" },
+    { inputType: "historyUndo", target: "Canvas text" },
+    { inputType: "historyRedo", target: "Canvas text" },
+  ]);
+  await writeFile(info.outputPath("native-undo-chronology.json"), JSON.stringify(nativeHistoryEvents, null, 2));
+  await expect(page.locator(".canvas-status")).toContainText("Saved");
+  expect(await writer.evaluate((element, retained) => element === retained, writerIdentity)).toBe(true);
+  const restored = await current();
+  expect(restored.canvas!.document).toEqual(before.canvas!.document);
+  await nativeHome();
+  await closeApplication();
+  await launch();
+  await page.getByTestId("home").getByRole("button", { name: `Open ${homePrompt}`, exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Canvas text", exact: true })).toHaveValue(authored);
+  await expect(page.locator('[data-canvas-block-id="rem-dream-graphic"]')).toHaveCount(0);
+  expect((await current()).canvas).toMatchObject({ revision: restored.canvas!.revision, document: restored.canvas!.document });
+  expect(requests).toHaveLength(1);
+  expect(providerErrors).toEqual([]);
+  await writeFile(info.outputPath("native-input-projection-evidence.json"), JSON.stringify({ before: before.canvas, kept: kept.canvas, restored: restored.canvas, providerRequests: requests.length, nativeHistoryEvents, qualification: "Actual Electron host/core and native editor against a controlled loopback provider and mock keychain; no live model or GNOME qualification." }, null, 2));
+});

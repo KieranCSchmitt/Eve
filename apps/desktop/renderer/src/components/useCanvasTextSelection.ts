@@ -67,23 +67,23 @@ function selectionRect(
     range.setStart(text, start);
     range.setEnd(text, end);
     const origin = mirror.getBoundingClientRect();
-    const visible = [...range.getClientRects()]
-      .map((rect) => ({
-        left:
-          frame.left +
-          (backward ? rect.left : rect.right) -
-          origin.left -
-          input.scrollLeft,
-        top: frame.top + rect.top - origin.top - input.scrollTop,
-        bottom: frame.top + rect.bottom - origin.top - input.scrollTop,
-      }))
-      .filter(
-        (rect) =>
-          rect.bottom > Math.max(frame.top, 0) &&
-          rect.top < Math.min(frame.bottom, window.innerHeight),
-      );
+    const rectangles = [...range.getClientRects()].map((rect) => ({
+      left:
+        frame.left +
+        (backward ? rect.left : rect.right) -
+        origin.left -
+        input.scrollLeft,
+      top: frame.top + rect.top - origin.top - input.scrollTop,
+      bottom: frame.top + rect.bottom - origin.top - input.scrollTop,
+    }));
+    const visible = rectangles.filter(
+      (rect) =>
+        rect.bottom > Math.max(frame.top, 0) &&
+        rect.top < Math.min(frame.bottom, window.innerHeight),
+    );
     return (
-      (backward ? visible[0] : visible.at(-1)) ?? {
+      (backward ? visible[0] : visible.at(-1)) ??
+      (backward ? rectangles[0] : rectangles.at(-1)) ?? {
         left: frame.left,
         top: frame.bottom,
         bottom: frame.bottom,
@@ -375,7 +375,10 @@ export function useCanvasTextSelection({
       );
       const inputBottom = element.getBoundingClientRect().bottom;
       const visible = visibleFrame(parent);
+      const lineVisible =
+        rect.bottom > visible.top && rect.top < visible.bottom;
       const docked =
+        lineVisible &&
         inputBottom >= visible.top &&
         inputBottom <= visible.bottom - 8 &&
         inputBottom - rect.bottom <= 32;
@@ -389,6 +392,7 @@ export function useCanvasTextSelection({
       const roomBelow = visible.bottom - below - 8;
       const roomAbove = rect.top - visible.top - 15;
       const above =
+        lineVisible &&
         !docked &&
         roomBelow < chrome + (insight ? 80 : 0) &&
         roomAbove > roomBelow;
@@ -398,7 +402,13 @@ export function useCanvasTextSelection({
         // input is never trapped in a nonoverflowing explanation container.
         const available = Math.max(
           80,
-          Math.floor((above ? roomAbove : roomBelow) - chrome),
+          Math.floor(
+            (lineVisible
+              ? above
+                ? roomAbove
+                : roomBelow
+              : visible.bottom - visible.top - 16) - chrome,
+          ),
         );
         const maxHeight = `${available}px`;
         if (
@@ -412,14 +422,18 @@ export function useCanvasTextSelection({
       }
       const height = control.offsetHeight;
       let top = above ? rect.top - height - 7 : below;
-      if (!docked)
+      if (!docked && lineVisible)
         top = Math.max(
           visible.top + 8,
           Math.min(top, visible.bottom - height - 8),
         );
-      // Only reserve the part extending outside the editor. A selection near
-      // the top of a tall editor gets its prompt beside the line, not its bottom.
-      setReservedHeight(Math.max(0, top + height + 7 - inputBottom));
+      // An offscreen selection scrolls with its text. Clamping it to the
+      // viewport would reserve the scroll distance below this editor, causing
+      // scroll anchoring to grow the block and repeat that distance forever.
+      // Reserve only the local popup overflow, never more than its own height.
+      setReservedHeight(
+        Math.min(height + 14, Math.max(0, top + height + 7 - inputBottom)),
+      );
       setPosition((previous) =>
         previous.left === left - bounds.left &&
         previous.top === top - bounds.top

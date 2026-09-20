@@ -84,6 +84,10 @@ describe('free-form request on exact selected writing',()=>{
     answer=async request=>result(request,[{type:'SearchSources',kind:'video',query:'ideas'}]);
     expect((await settled(ask(text))).status).toBe('error');expect(searches).toEqual([]);expect(writes).toEqual([]);
   });
+  it('accepts an affirmative video search with an ordinary content constraint',async()=>{
+    answer=async request=>result(request,[{type:'SearchSources',kind:'video',query:'shared observations plain explanation'}]);
+    expect((await settled(ask('Find a short video about this without technical jargon.'))).status).toBe('complete');expect(searches).toHaveLength(1);expect(writes).toEqual([]);
+  });
   it('rejects off-range edits from the worker before preparing a proposal',async()=>{
     answer=async request=>{const action=changed(request);if(action.type==='ComposeCanvas' && action.document.blocks[0]?.kind==='text')action.document.blocks[0].body='Changed every paragraph.';return result(request,[action]);};
     const response=await settled(ask('Rewrite this.'));expect(response.status).toBe('error');expect(response.proposals).toEqual([]);expect(writes).toEqual([]);

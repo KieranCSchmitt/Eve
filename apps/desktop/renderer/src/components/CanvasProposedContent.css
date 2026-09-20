@@ -1,0 +1,110 @@
+/* Proposal content uses the live block geometry and renderers. Blue is the
+   only preview treatment; approval controls sit in the normal heading. */
+.canvas-block[data-proposed="true"],
+.canvas-proposed-heading {
+  --ink: #315bc9;
+  --muted: #627cab;
+  --rule: #d7e2f9;
+  color: #315bc9;
+}
+.canvas-block[data-proposed="true"]
+  :is(h2, h3, p, textarea, input, select, label, strong, .canvas-timer-value) {
+  color: #315bc9;
+  -webkit-text-fill-color: #315bc9;
+}
+.canvas-block[data-proposed="true"]
+  :is(input, textarea, select, button):disabled,
+.canvas-block[data-proposed="true"] [aria-disabled="true"] {
+  opacity: 1;
+}
+.canvas-block[data-proposed="true"]
+  :is(.design-stage, .adjusted-image-viewport) {
+  position: relative;
+}
+.canvas-block[data-proposed="true"]
+  :is(.design-stage, .adjusted-image-viewport)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #5386ec;
+  mix-blend-mode: color;
+  pointer-events: none;
+  z-index: 25;
+}
+.canvas-block[data-proposed="true"] .design-text-preview {
+  -webkit-text-fill-color: #315bc9;
+}
+.canvas-block-heading > .canvas-proposal-actions {
+  min-width: 124px;
+  justify-content: flex-end;
+}
+.canvas-proposal-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 5px;
+}
+.canvas-proposal-actions button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #ccdafa;
+  border-radius: 50%;
+  background: #edf3ff;
+  color: #315bc9;
+}
+.canvas-proposal-actions button:hover:not([aria-disabled="true"]) {
+  background: #dde9ff;
+  border-color: #8ea9eb;
+}
+.canvas-proposal-actions button[aria-disabled="true"],
+.canvas-block[data-proposed="true"]
+  .canvas-proposal-actions
+  button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+.canvas-proposed-replacement {
+  margin-top: 22px;
+}
+.canvas-proposal-removal,
+.canvas-proposal-feedback,
+.canvas-proposal-details {
+  margin-block: 12px;
+  color: #62738e;
+  font:
+    12px/1.6 "Inter Variable",
+    sans-serif;
+}
+.canvas-proposal-removal,
+.canvas-proposal-feedback {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.canvas-proposal-details summary {
+  cursor: pointer;
+}
+.canvas-proposal-details li {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.canvas-proposed-heading :is(h1, p) {
+  color: #315bc9;
+}
+.canvas-proposal-spinner {
+  animation: canvas-proposal-spin 1s linear infinite;
+}
+@keyframes canvas-proposal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-proposal-spinner {
+    animation: none;
+  }
+}

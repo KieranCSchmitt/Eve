@@ -15,6 +15,7 @@ import {
   ChartNoAxesCombined,
   Hash,
   LayoutGrid,
+  LoaderCircle,
   MoreHorizontal,
   Check,
   Clock3,
@@ -60,6 +61,12 @@ import {
   type CanvasSuggestionRefreshScope,
 } from "./useCanvasTextSelection";
 import { useCanvasReviewExpiration } from "./useCanvasReviewExpiration";
+import { canvasProposalProjection } from "./canvasProposalProjection";
+import {
+  CanvasProposalControls,
+  type CanvasProposedChange,
+} from "./CanvasProposalControls";
+import "./CanvasProposedContent.css";
 
 export interface CanvasProps {
   document: CanvasDocument;
@@ -86,6 +93,8 @@ export interface CanvasProps {
   selectionInsight?: {
     scope: CanvasSuggestionRefreshScope;
     content: ReactNode;
+    pending?: boolean;
+    onCancel?(): void;
   };
   contextSteps?: CanvasContextSteps;
   onCancelContextSteps?(): void;
@@ -97,6 +106,7 @@ export interface CanvasProps {
     content: ReactNode;
     readyChoice?: { suggestion: CanvasSuggestion; expiresAt: number };
   };
+  proposedChange?: CanvasProposedChange;
   requestPending?: boolean;
   saveState?: "saved" | "saving" | "error";
   saveMessage?: string;
@@ -169,6 +179,7 @@ function TextBlock({
     passage.insightVisible && selectionInsight
       ? selectionInsight.content
       : null;
+  const questionPending = !!selectionInsight?.pending && passage.insightVisible;
   const [question, setQuestion] = useState("");
   const composingQuestion = useRef(false);
   const submittingQuestion = useRef(false);
@@ -245,6 +256,8 @@ function TextBlock({
           <form
             className="canvas-context-selection-tools canvas-context-question"
             aria-label="Ask about selected text"
+            aria-busy={questionPending}
+            data-pending={questionPending}
             onSubmit={(event) => {
               event.preventDefault();
               if (
@@ -299,16 +312,37 @@ function TextBlock({
                 if (event.button === 0) event.preventDefault();
               }}
             >
-              <ArrowUp size={15} aria-hidden="true" />
+              {questionPending ? (
+                <LoaderCircle
+                  size={15}
+                  className="canvas-context-spinner"
+                  aria-hidden="true"
+                />
+              ) : (
+                <ArrowUp size={15} aria-hidden="true" />
+              )}
             </button>
             <button
               type="button"
               className="canvas-context-dismiss"
-              aria-label="Dismiss passage actions"
+              aria-label={
+                questionPending
+                  ? "Cancel selection request"
+                  : "Dismiss passage actions"
+              }
+              title={
+                questionPending
+                  ? "Cancel selection request"
+                  : "Dismiss passage actions"
+              }
               onPointerDown={(event) => {
                 if (event.button === 0) event.preventDefault();
               }}
-              onClick={() => passage.dismiss(true)}
+              onClick={() =>
+                questionPending
+                  ? selectionInsight?.onCancel?.()
+                  : passage.dismiss(true)
+              }
             >
               <X size={12} aria-hidden="true" />
             </button>
@@ -1462,6 +1496,7 @@ export function Canvas({
   nextStepsMessage,
   onCancelNextSteps,
   suggestionPreview,
+  proposedChange,
   requestPending = false,
   saveState = "saved",
   saveMessage,
@@ -1470,6 +1505,27 @@ export function Canvas({
   disabled = false,
 }: CanvasProps) {
   const headingId = useId();
+  const projection = useMemo(
+    () => canvasProposalProjection(document, proposedChange?.proposal),
+    [document, proposedChange?.proposal],
+  );
+  const proposalExpired = useCanvasReviewExpiration(
+    proposedChange?.proposal.expiresAt,
+  );
+  const activeProjection = projection?.fresh ? projection : null;
+  const canKeepProposal =
+    !!activeProjection &&
+    !disabled &&
+    !proposalExpired &&
+    proposedChange?.proposal.status === "ready";
+  const proposalActions = proposedChange ? (
+    <CanvasProposalControls
+      change={proposedChange}
+      canKeep={canKeepProposal}
+      disabled={disabled}
+      multiple={projection?.multiple}
+    />
+  ) : null;
   const unavailableSuggestions = useMemo(
     () =>
       Object.fromEntries(
@@ -1484,7 +1540,20 @@ export function Canvas({
     [document],
   );
   const canvasElement = useRef<HTMLElement>(null);
-  const readyChoice = suggestionPreview?.readyChoice;
+  const additionChoice =
+    proposedChange?.proposal.status === "ready" && projection?.fresh
+      ? projection.before.suggestions?.find(
+          (item) => item.id === proposedChange.proposal.preparedSuggestionId,
+        )
+      : undefined;
+  const readyChoice =
+    suggestionPreview?.readyChoice ??
+    (additionChoice && proposedChange
+      ? {
+          suggestion: additionChoice,
+          expiresAt: proposedChange.proposal.expiresAt,
+        }
+      : undefined);
   const reviewExpired = useCanvasReviewExpiration(readyChoice?.expiresAt);
   const previewedSuggestion =
     readyChoice && Number.isFinite(readyChoice.expiresAt) && !reviewExpired
@@ -1504,7 +1573,7 @@ export function Canvas({
       readyChoice!.expiresAt > Date.now()
     ) {
       const review = canvasElement.current?.querySelector<HTMLElement>(
-        ".canvas-suggestion-preview",
+        '.canvas-suggestion-preview, .canvas-block[data-proposed="true"]',
       );
       if (review) {
         // Only this deliberate activation moves attention. Arrival is passive,
@@ -1649,183 +1718,261 @@ export function Canvas({
         ),
       }),
     );
-  const renderBlock = (block: CanvasBlock) => (
+  const renderProposedBlock = (block: CanvasBlock) => (
     <section
-      key={block.id}
-      className="canvas-block"
+      className="canvas-block canvas-proposed-replacement"
       data-kind={block.kind}
-      data-canvas-block-id={block.id}
       data-placement={block.placement}
       data-pinned={block.pinned}
-      aria-label={block.title || `${block.kind} item`}
+      data-canvas-block-id={block.id}
+      data-proposed="true"
+      aria-label={`Proposed ${block.title || block.kind}`}
     >
       <div className="canvas-block-heading">
-        {editingTitle === block.id ? (
-          <input
-            className="canvas-block-title-input"
-            autoFocus
-            aria-label="Item heading"
-            value={block.title}
-            maxLength={160}
-            disabled={disabled}
-            onChange={(event) =>
-              replace({ ...block, title: event.target.value })
-            }
-            onBlur={() => setEditingTitle(null)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === "Escape")
-                setEditingTitle(null);
-            }}
-          />
-        ) : (
-          <h2>{block.title}</h2>
-        )}
-        <div className="canvas-block-actions">
-          <details className="canvas-arrange">
-            <summary
-              className="canvas-icon-button"
-              aria-label={`Arrange ${block.title || block.kind}`}
-            >
-              <MoreHorizontal size={17} />
-            </summary>
-            <div className="canvas-arrange-panel">
-              <label>
-                Position
-                <select
-                  aria-label={`Position of ${block.title || block.kind}`}
-                  value={block.placement}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    replace({
-                      ...block,
-                      placement: event.target.value as CanvasBlock["placement"],
-                    })
-                  }
-                >
-                  <option value="main">Main content</option>
-                  <option value="aside">Beside your work</option>
-                  <option value="full">Full width</option>
-                </select>
-              </label>
-              <div>
-                <button
-                  type="button"
-                  disabled={disabled || document.blocks[0].id === block.id}
-                  onClick={() => moveBlock(block.id, -1)}
-                >
-                  <ArrowUp size={14} />
-                  Move earlier
-                </button>
-                <button
-                  type="button"
-                  disabled={disabled || document.blocks.at(-1)!.id === block.id}
-                  onClick={() => moveBlock(block.id, 1)}
-                >
-                  <ArrowDown size={14} />
-                  Move later
-                </button>
-              </div>
-            </div>
-          </details>
-          <button
-            className="canvas-icon-button"
-            aria-label={`Edit ${block.title || block.kind} heading`}
-            disabled={disabled}
-            onClick={() => setEditingTitle(block.id)}
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            className="canvas-icon-button"
-            aria-label={`${block.pinned ? "Unpin" : "Pin"} ${block.title || block.kind}`}
-            aria-pressed={block.pinned}
-            disabled={disabled}
-            onClick={() => replace({ ...block, pinned: !block.pinned })}
-          >
-            <Pin size={15} strokeWidth={1.6} />
-          </button>
-          <button
-            className="canvas-icon-button"
-            aria-label={`Remove ${block.title || block.kind} block`}
-            disabled={disabled || document.blocks.length <= 1}
-            onClick={() =>
-              onChange(
-                withAvailableData({
-                  ...document,
-                  ...(document.suggestions
-                    ? {
-                        suggestions: document.suggestions.filter(
-                          (suggestion) => suggestion.targetBlockId !== block.id,
-                        ),
-                      }
-                    : {}),
-                  blocks: document.blocks.filter(
-                    (candidate) => candidate.id !== block.id,
-                  ),
-                }),
-              )
-            }
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+        <h2>{block.title}</h2>
+        {proposalActions}
       </div>
       <Block
         block={block}
-        tables={document.blocks.filter(
-          (candidate): candidate is BlockOf<"table"> =>
-            candidate.kind === "table",
-        )}
         assets={assets}
         sources={sources}
-        disabled={disabled}
-        requestPending={requestPending}
-        onChange={replace}
-        onOpenSource={onOpenSource}
-        onOpenNote={onOpenNote}
-        onAddMaterial={onAddMaterial}
-        onAttachImage={onAttachImage}
-        imageAttachment={imageAttachments?.[block.id]}
-        onCancelImageAttachment={onCancelImageAttachment}
-        onCheckImageAttachment={onCheckImageAttachment}
-        onAddSource={onAddSource}
-        onRequestOutline={onRequestOutline}
-        onRequestContextSteps={onRequestContextSteps}
-        onLearnAboutSelection={onLearnAboutSelection}
-        onAskAboutSelection={onAskAboutSelection}
-        selectionInsight={
-          selectionInsight?.scope.blockId === block.id
-            ? selectionInsight
-            : undefined
-        }
-        choices={
-          onRequestSuggestion
-            ? {
-                suggestions: document.suggestions ?? [],
-                onChoose: chooseSuggestion,
-                previewedSuggestionId: previewedSuggestion?.id,
-                unavailable: unavailableSuggestions,
-              }
-            : undefined
-        }
-        contextSteps={contextSteps}
-        onCancelContextSteps={onCancelContextSteps}
-        onRevealTable={revealTable}
-        onCreateDataView={
-          document.blocks.length < 24 ? createDataView : undefined
-        }
+        tables={activeProjection!.after.blocks.filter(
+          (item): item is BlockOf<"table"> => item.kind === "table",
+        )}
+        disabled
+        requestPending={false}
+        onChange={() => {}}
+        onRevealTable={() => {}}
       />
-      {suggestionPreview?.targetBlockId === block.id &&
-        suggestionPreview.content}
       {block.kind !== "sources" && (
-        <SourceLinks
-          ids={block.sourceIds}
-          sources={sources}
-          onOpen={onOpenSource}
-        />
+        <SourceLinks ids={block.sourceIds} sources={sources} />
       )}
     </section>
   );
+  const renderBlock = (layoutBlock: CanvasBlock) => {
+    const original = document.blocks.find(
+      (block) => block.id === layoutBlock.id,
+    );
+    const block = original ?? layoutBlock;
+    const addition = !original && !!activeProjection;
+    const candidate = activeProjection?.after.blocks.find(
+      (item) => item.id === block.id,
+    );
+    const replacement =
+      original &&
+      candidate &&
+      activeProjection?.changed.has(block.id) &&
+      (!canvasDataEqual(
+        { ...original, placement: candidate.placement },
+        candidate,
+      ) ||
+        candidate.kind === "chart" ||
+        candidate.kind === "metric" ||
+        candidate.kind === "timeline")
+        ? candidate
+        : null;
+    const removed = !!activeProjection?.removed.some(
+      (item) => item.id === block.id,
+    );
+    return (
+      <section
+        key={block.id}
+        className="canvas-block"
+        data-kind={block.kind}
+        data-canvas-block-id={block.id}
+        data-placement={block.placement}
+        data-pinned={block.pinned}
+        data-proposed={addition || undefined}
+        data-proposed-removal={removed || undefined}
+        aria-label={block.title || `${block.kind} item`}
+      >
+        <div className="canvas-block-heading">
+          {editingTitle === block.id ? (
+            <input
+              className="canvas-block-title-input"
+              autoFocus
+              aria-label="Item heading"
+              value={block.title}
+              maxLength={160}
+              disabled={disabled}
+              onChange={(event) =>
+                replace({ ...block, title: event.target.value })
+              }
+              onBlur={() => setEditingTitle(null)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === "Escape")
+                  setEditingTitle(null);
+              }}
+            />
+          ) : (
+            <h2>{block.title}</h2>
+          )}
+          {addition ? (
+            proposalActions
+          ) : (
+            <div className="canvas-block-actions">
+              <details className="canvas-arrange">
+                <summary
+                  className="canvas-icon-button"
+                  aria-label={`Arrange ${block.title || block.kind}`}
+                >
+                  <MoreHorizontal size={17} />
+                </summary>
+                <div className="canvas-arrange-panel">
+                  <label>
+                    Position
+                    <select
+                      aria-label={`Position of ${block.title || block.kind}`}
+                      value={block.placement}
+                      disabled={disabled}
+                      onChange={(event) =>
+                        replace({
+                          ...block,
+                          placement: event.target
+                            .value as CanvasBlock["placement"],
+                        })
+                      }
+                    >
+                      <option value="main">Main content</option>
+                      <option value="aside">Beside your work</option>
+                      <option value="full">Full width</option>
+                    </select>
+                  </label>
+                  <div>
+                    <button
+                      type="button"
+                      disabled={disabled || document.blocks[0].id === block.id}
+                      onClick={() => moveBlock(block.id, -1)}
+                    >
+                      <ArrowUp size={14} />
+                      Move earlier
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        disabled || document.blocks.at(-1)!.id === block.id
+                      }
+                      onClick={() => moveBlock(block.id, 1)}
+                    >
+                      <ArrowDown size={14} />
+                      Move later
+                    </button>
+                  </div>
+                </div>
+              </details>
+              <button
+                className="canvas-icon-button"
+                aria-label={`Edit ${block.title || block.kind} heading`}
+                disabled={disabled}
+                onClick={() => setEditingTitle(block.id)}
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                className="canvas-icon-button"
+                aria-label={`${block.pinned ? "Unpin" : "Pin"} ${block.title || block.kind}`}
+                aria-pressed={block.pinned}
+                disabled={disabled}
+                onClick={() => replace({ ...block, pinned: !block.pinned })}
+              >
+                <Pin size={15} strokeWidth={1.6} />
+              </button>
+              <button
+                className="canvas-icon-button"
+                aria-label={`Remove ${block.title || block.kind} block`}
+                disabled={disabled || document.blocks.length <= 1}
+                onClick={() =>
+                  onChange(
+                    withAvailableData({
+                      ...document,
+                      ...(document.suggestions
+                        ? {
+                            suggestions: document.suggestions.filter(
+                              (suggestion) =>
+                                suggestion.targetBlockId !== block.id,
+                            ),
+                          }
+                        : {}),
+                      blocks: document.blocks.filter(
+                        (candidate) => candidate.id !== block.id,
+                      ),
+                    }),
+                  )
+                }
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          )}
+        </div>
+        <Block
+          block={block}
+          tables={(addition ? activeProjection!.after : document).blocks.filter(
+            (candidate): candidate is BlockOf<"table"> =>
+              candidate.kind === "table",
+          )}
+          assets={assets}
+          sources={sources}
+          disabled={disabled || addition}
+          requestPending={requestPending}
+          onChange={addition ? () => {} : replace}
+          onOpenSource={addition ? undefined : onOpenSource}
+          onOpenNote={addition ? undefined : onOpenNote}
+          onAddMaterial={addition ? undefined : onAddMaterial}
+          onAttachImage={addition ? undefined : onAttachImage}
+          imageAttachment={addition ? undefined : imageAttachments?.[block.id]}
+          onCancelImageAttachment={
+            addition ? undefined : onCancelImageAttachment
+          }
+          onCheckImageAttachment={addition ? undefined : onCheckImageAttachment}
+          onAddSource={addition ? undefined : onAddSource}
+          onRequestOutline={addition ? undefined : onRequestOutline}
+          onRequestContextSteps={addition ? undefined : onRequestContextSteps}
+          onLearnAboutSelection={addition ? undefined : onLearnAboutSelection}
+          onAskAboutSelection={addition ? undefined : onAskAboutSelection}
+          selectionInsight={
+            !addition && selectionInsight?.scope.blockId === block.id
+              ? selectionInsight
+              : undefined
+          }
+          choices={
+            onRequestSuggestion && !addition
+              ? {
+                  suggestions: document.suggestions ?? [],
+                  onChoose: chooseSuggestion,
+                  previewedSuggestionId: previewedSuggestion?.id,
+                  unavailable: unavailableSuggestions,
+                }
+              : undefined
+          }
+          contextSteps={addition ? undefined : contextSteps}
+          onCancelContextSteps={addition ? undefined : onCancelContextSteps}
+          onRevealTable={addition ? () => {} : revealTable}
+          onCreateDataView={
+            !addition && document.blocks.length < 24
+              ? createDataView
+              : undefined
+          }
+        />
+        {replacement && renderProposedBlock(replacement)}
+        {removed && (
+          <div className="canvas-proposal-removal">
+            <span>Remove on approval</span>
+            {proposalActions}
+          </div>
+        )}
+        {suggestionPreview?.targetBlockId === block.id &&
+          suggestionPreview.content}
+        {block.kind !== "sources" && (
+          <SourceLinks
+            ids={block.sourceIds}
+            sources={sources}
+            onOpen={addition ? undefined : onOpenSource}
+          />
+        )}
+      </section>
+    );
+  };
   return (
     <section
       className="eve-canvas"
@@ -1838,6 +1985,16 @@ export function Canvas({
           <h1 id={headingId}>{document.title}</h1>
           {document.subtitle && (
             <p className="canvas-subtitle">{document.subtitle}</p>
+          )}
+          {activeProjection?.headingChanged && (
+            <div className="canvas-proposed-heading">
+              <h1>{activeProjection.after.title}</h1>
+              {activeProjection.after.subtitle && (
+                <p className="canvas-subtitle">
+                  {activeProjection.after.subtitle}
+                </p>
+              )}
+            </div>
           )}
         </div>
         <div
@@ -1855,7 +2012,104 @@ export function Canvas({
                 : "Saved")}
         </div>
       </header>
-      <CanvasLayout document={document}>{renderBlock}</CanvasLayout>
+      <CanvasLayout document={activeProjection?.layout ?? document}>
+        {renderBlock}
+      </CanvasLayout>
+      {proposedChange &&
+        (!activeProjection ||
+          proposalExpired ||
+          proposedChange.proposal.status !== "ready") && (
+          <div className="canvas-proposal-feedback" role="status">
+            <span>
+              {!projection
+                ? "This preview is unavailable."
+                : !projection.fresh
+                  ? "Your work has changed. Ask again to prepare a fresh change."
+                  : proposalExpired ||
+                      proposedChange.proposal.status === "expired"
+                    ? "This preview has expired. Ask again to prepare a fresh change."
+                    : proposedChange.proposal.status === "applying"
+                      ? "Keeping your changes…"
+                      : proposedChange.proposal.status === "uncertain"
+                        ? "Eve could not confirm whether these changes were kept. Check your space before trying again."
+                        : proposedChange.proposal.message ||
+                          "This change is no longer available to keep."}
+            </span>
+            {!activeProjection && proposalActions}
+          </div>
+        )}
+      {activeProjection?.choicesChanged && (
+        <details className="canvas-proposal-details">
+          <summary>Also updates saved suggestions</summary>
+          <ul>
+            {[
+              ...new Set([
+                ...(activeProjection.before.suggestions ?? []).map(
+                  (item) => item.id,
+                ),
+                ...(activeProjection.after.suggestions ?? []).map(
+                  (item) => item.id,
+                ),
+              ]),
+            ].flatMap((id) => {
+              const before = activeProjection.before.suggestions?.find(
+                (item) => item.id === id,
+              );
+              const after = activeProjection.after.suggestions?.find(
+                (item) => item.id === id,
+              );
+              return canvasDataEqual(before, after)
+                ? []
+                : [
+                    <li key={id}>
+                      {before && !after
+                        ? "Removes"
+                        : !before
+                          ? "Adds"
+                          : "Updates"}{" "}
+                      “{after?.label ?? before?.label}”
+                      {before && (
+                        <div>
+                          <strong>
+                            {after ? "Current suggestion" : before.label}
+                          </strong>
+                          <p>{before.description}</p>
+                          <p>{before.request}</p>
+                          <small>
+                            For:{" "}
+                            {activeProjection.before.blocks.find(
+                              (item) => item.id === before.targetBlockId,
+                            )?.title ||
+                              (before.targetBlockId
+                                ? "Untitled item"
+                                : "Whole canvas")}
+                          </small>
+                        </div>
+                      )}
+                      {after && (
+                        <div>
+                          <strong>
+                            {before ? "Proposed suggestion" : after.label}
+                          </strong>
+                          <p>{after.description}</p>
+                          <p>{after.request}</p>
+                          <small>
+                            For:{" "}
+                            {activeProjection.after.blocks.find(
+                              (item) => item.id === after.targetBlockId,
+                            )?.title ||
+                              (after.targetBlockId
+                                ? "Untitled item"
+                                : "Whole canvas")}
+                          </small>
+                        </div>
+                      )}
+                    </li>,
+                  ];
+            })}
+          </ul>
+        </details>
+      )}
       {suggestionPreview &&
         (suggestionPreview.targetBlockId === null ||
           !document.blocks.some(

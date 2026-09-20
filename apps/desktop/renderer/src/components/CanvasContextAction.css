@@ -73,6 +73,15 @@
   border-radius: 6px;
   box-shadow: inset 0 0 0 1px #dce5f6;
 }
+.canvas-context-question[data-pending="true"] {
+  border-radius: 6px;
+  background: #f0f5ff;
+  box-shadow: inset 0 0 0 1px #b9cafa;
+}
+.canvas-context-question[data-pending="true"] .canvas-context-question-send {
+  color: #5677ef;
+  background: transparent;
+}
 .canvas-context-question-send {
   display: grid;
   place-items: center;

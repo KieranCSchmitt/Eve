@@ -94,7 +94,7 @@ function discoveryCommand(text: string): { query: string; kind: 'article' | 'vid
 }
 function explicitlyRequestsSourceSearch(text: string): boolean {
   return /^(?:(?:please|can you|could you|would you|will you)\s+)?(?:find(?: me)?|search(?: for)?|show(?: me)?|look for|look up|recommend(?: me)?|suggest(?: me)?|fetch|locate|give me|get(?: me)?)\s+(?:(?:some|an?|the|short|useful|relevant|good|educational|related|helpful)\s+)*(?:videos?|articles?|sources?|links?|tutorials?|lectures?)\b/i.test(text.trim()) &&
-    !/\b(?:do not|don't|never|avoid|no need to|rather than|without)\b/i.test(text);
+    !/\b(?:do not|don't|never|avoid|no need to|rather than|without)\s+(?:\w+\s+){0,2}(?:search(?:ing)?|find(?:ing)?|show(?:ing)?|look(?:ing)?\s+(?:for|up)|open(?:ing)?)\b/i.test(text);
 }
 /** Literal HTTPS only; article text and generated responses never enter this path. */
 function sourceCommand(text: string): { url: string; title: string } | null {

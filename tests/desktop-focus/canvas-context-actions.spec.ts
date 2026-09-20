@@ -371,9 +371,9 @@ test("Escape cancels IME composition without dismissing the question or losing i
   });
   expect(defaultPrevented).toBe(false);
   await expect(passage(page)).toHaveValue("Explain this phrase");
-  expect(await passage(page).evaluate((node, old) => node === old, prompt)).toBe(
-    true,
-  );
+  expect(
+    await passage(page).evaluate((node, old) => node === old, prompt),
+  ).toBe(true);
   expect(await learns(page)).toEqual([]);
   expect(await page.evaluate(() => (window as unknown as Win).writes)).toBe(0);
   await passage(page).press("Escape");
@@ -526,6 +526,116 @@ test("the answer fits the workspace boundary and a short answer lets wheel input
     .poll(() => workspace.evaluate((node) => node.scrollTop))
     .toBeGreaterThan(current);
 });
+
+for (const width of [1280, 390])
+  test(`scrolling to a review below a focused selection prompt keeps layout bounded at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 850 });
+    const document = withChoice({
+      ...doc,
+      layout: "focus",
+      blocks: [doc.blocks[0]],
+    });
+    await mount(page, document);
+    await page.addStyleTag({
+      content:
+        ".context-fixture{height:650px;margin-top:60px;overflow:auto}.canvas-editable-copy{min-height:280px}.canvas-suggestion-preview{height:1150px}",
+    });
+    await select(page, 0, 6, "backward");
+    const editor = await writer(page).elementHandle();
+    await ask(page, "Show a graphic explaining this passage.");
+    const prompt = await passage(page).elementHandle();
+    await page.evaluate((choice) => {
+      const w = window as unknown as Win;
+      w.setPreview(choice);
+      w.setInsight(undefined);
+      w.setPending(false);
+    }, document.suggestions![0]);
+    const preview = page.getByRole("region", { name: "Suggestion preview" });
+    await expect(preview).toBeVisible();
+    await settle(page);
+    await expect(passage(page)).toBeFocused();
+    const before = await writer(page).evaluate((node) => ({
+      height: node.closest(".canvas-block")!.getBoundingClientRect().height,
+      padding: parseFloat(getComputedStyle(node.parentElement!).paddingBottom),
+    }));
+    await preview.evaluate((node) => node.scrollIntoView({ block: "end" }));
+    const frames = await page.evaluate(async () => {
+      const records = [];
+      for (let index = 0; index < 120; index++) {
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
+        const workspace = window.document.querySelector(".context-fixture")!;
+        const editor = window.document.querySelector<HTMLTextAreaElement>(
+          ".canvas-editable-copy",
+        )!;
+        const prompt = window.document.querySelector<HTMLInputElement>(
+          ".canvas-context-question-input",
+        )!;
+        records.push({
+          height: editor.closest(".canvas-block")!.getBoundingClientRect()
+            .height,
+          editorHeight: editor.getBoundingClientRect().height,
+          scroll: workspace.scrollTop,
+          scrollHeight: workspace.scrollHeight,
+          padding: parseFloat(
+            getComputedStyle(editor.parentElement!).paddingBottom,
+          ),
+          promptTop: prompt.getBoundingClientRect().top,
+          focused: window.document.activeElement === prompt,
+        });
+      }
+      return records;
+    });
+    const geometryPath = info.outputPath("focused-preview-scroll-geometry.json");
+    await writeFile(geometryPath, JSON.stringify({ before, frames }, null, 2));
+    await info.attach("focused-preview-scroll-geometry", {
+      path: geometryPath,
+      contentType: "application/json",
+    });
+    expect(
+      Math.max(...frames.map((frame) => frame.height)),
+    ).toBeLessThanOrEqual(before.height + 2);
+    expect(
+      Math.max(...frames.map((frame) => frame.padding)),
+    ).toBeLessThanOrEqual(before.padding + 2);
+    expect(frames.every((frame) => frame.focused)).toBe(true);
+    expect(new Set(frames.map((frame) => frame.editorHeight)).size).toBe(1);
+    expect(
+      Math.max(...frames.slice(20).map((frame) => frame.scroll)) -
+        Math.min(...frames.slice(20).map((frame) => frame.scroll)),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      await passage(page).evaluate(
+        (node, original) => node === original,
+        prompt,
+      ),
+    ).toBe(true);
+    expect(
+      await writer(page).evaluate(
+        (node, original) => node === original,
+        editor,
+      ),
+    ).toBe(true);
+    expect(
+      await writer(page).evaluate((node: HTMLTextAreaElement) => [
+        node.selectionStart,
+        node.selectionEnd,
+        node.selectionDirection,
+      ]),
+    ).toEqual([0, 6, "backward"]);
+    await expect(writer(page)).toHaveValue(text);
+    expect(await page.evaluate(() => (window as unknown as Win).writes)).toBe(
+      0,
+    );
+    expect(await learns(page)).toHaveLength(1);
+    await page.screenshot({
+      path: info.outputPath("focused-preview-scroll.png"),
+      fullPage: false,
+    });
+  });
 
 for (const [width, aside] of [
   [1280, false],
