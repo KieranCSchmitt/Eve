@@ -1,2 +1,2 @@
 # Eve
-Think smarter.
+Think freely.
