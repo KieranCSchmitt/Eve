@@ -1,0 +1,9 @@
+{
+  "uuid": "eve-session@eve.desktop",
+  "name": "Eve Session",
+  "description": "Session-scoped presentation and recall. The real GNOME lock and agents remain active.",
+  "version": 1,
+  "shell-version": ["46"],
+  "session-modes": ["eve", "unlock-dialog"],
+  "settings-schema": "org.eve.shell"
+}

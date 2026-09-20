@@ -1,0 +1,55 @@
+{
+  "name": "eve-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A place to think. A desktop that keeps you in the flow.",
+  "type": "module",
+  "main": "dist/host/main.cjs",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "start": "electron . --app",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:desktop": "playwright test",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "setup:workbench": "node scripts/setup-workbench.mjs",
+    "configure:provider": "node scripts/configure-provider.mjs",
+    "package:linux": "node scripts/package-linux.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/newsreader": "5.3.0",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "better-sqlite3": "13.0.3",
+    "dompurify": "3.4.15",
+    "lucide-react": "1.47.0",
+    "marked": "18.0.13",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "4.2.0",
+    "@playwright/test": "1.63.0",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "22.20.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/vscode": "1.138.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "electron": "44.4.3",
+    "esbuild": "0.28.2",
+    "prettier": "3.9.8",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
+  }
+}

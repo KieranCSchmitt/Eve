@@ -1,0 +1,9 @@
+[org/gnome/shell]
+enabled-extensions=['eve-session@eve.desktop']
+disable-user-extensions=false
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-light'
+
+[org/gnome/desktop/screensaver]
+lock-enabled=true

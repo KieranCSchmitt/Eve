@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Orbit — a little space to focus</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <main class="orbit" aria-label="Orbit study timer">
+    <header class="masthead">
+      <span class="wordmark"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="11" ry="4.2" transform="rotate(-36 12 12)"/></svg>orbit</span>
+      <span class="mode"><span></span> Your time, protected</span>
+    </header>
+    <section class="focus-layout">
+      <div class="introduction">
+        <p class="eyebrow">MAKE ROOM FOR WHAT MATTERS</p>
+        <h1>A little space<br />to focus.</h1>
+        <p class="description">One thing at a time.<br />The rest can wait a little.</p>
+        <div class="session-note" aria-live="polite"><span class="small-star">✳</span><p id="session-note">A fresh start.<br /><strong>Make it a good one.</strong></p></div>
+      </div>
+      <div class="timer-panel">
+        <div class="dial" id="dial">
+          <svg class="dial-art" viewBox="0 0 280 280" aria-hidden="true"><circle class="dial-track" cx="140" cy="140" r="122"/><circle class="dial-progress" id="progress" cx="140" cy="140" r="122"/><g id="ticks"></g><circle class="orbit-dot" cx="140" cy="18" r="5"/></svg>
+          <div class="timer-face"><span class="timer-label" id="phase">FOCUS SESSION</span><span class="time" id="time" role="timer" aria-label="25 minutes remaining">25:00</span><span class="timer-subtitle" id="subtitle">a little intention goes a long way</span></div>
+        </div>
+        <div class="controls"><button id="toggle" class="primary"><span id="toggle-icon">↗</span><span id="toggle-label">Begin session</span></button><button id="reset" class="reset" aria-label="Reset session" title="Reset session">↻</button></div>
+        <p class="next-session" id="next-session" aria-live="polite"></p>
+      </div>
+    </section>
+    <footer><span><i></i> A moment for your mind</span><span id="duration-label">25 MINUTES · JUST FOR YOU</span></footer>
+    <p class="config-status" id="config-status" role="status" hidden></p>
+  </main>
+  <script type="module" src="./src/app.mjs"></script>
+</body>
+</html>

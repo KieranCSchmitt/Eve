@@ -1,0 +1,154 @@
+/* Read-only proposed content stays next to its approval controls. The live
+   editor remains the source of truth until the host acknowledges Keep. */
+.canvas-suggestion-preview .suggestion-inline-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+}
+.canvas-suggestion-preview .suggestion-inline-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border: 1px solid #cad7f5;
+  border-radius: 50%;
+  color: #315bc9;
+  background: #edf3ff;
+  box-shadow: none;
+}
+.canvas-suggestion-preview
+  .suggestion-inline-actions
+  > .suggestion-preview-dismiss {
+  color: #62708a;
+  background: transparent;
+  border-color: #dde3ec;
+}
+.canvas-suggestion-preview
+  .suggestion-inline-actions
+  > button:hover:not([aria-disabled="true"]) {
+  background: #dfeaff;
+  border-color: #8ea9eb;
+}
+.canvas-suggestion-preview
+  .suggestion-inline-actions
+  > button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+.canvas-suggestion-preview[data-review-mode="compact"] {
+  padding: 11px 0 13px;
+  margin-block: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  scroll-margin-block: 16px;
+}
+.canvas-suggestion-preview[data-review-mode="compact"][data-inspecting="false"] {
+  max-width: min(760px, 100%);
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-preview-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-preview-shell {
+  display: block;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-field {
+  margin: 0 0 6px;
+  color: #65738d;
+  font:
+    11px/1.5 "Inter Variable",
+    sans-serif;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 10px;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-values
+  > div {
+  min-width: 0;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-values
+  :is(del, ins) {
+  display: inline;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 400 22px/1.45 var(--serif, Georgia, serif);
+  background: transparent;
+  box-shadow: none;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-values
+  del {
+  color: #6a7385;
+  text-decoration-line: line-through;
+  text-decoration-color: #8994a8;
+  text-decoration-thickness: 1px;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-values
+  ins {
+  color: #315bc9;
+  text-decoration: none;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-inline-original,
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-inline-proposed {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-values
+  > svg {
+  display: inline-block;
+  flex: 0 0 auto;
+  align-self: center;
+  color: #8795af;
+  transform: none;
+  margin: 0;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-inline-actions {
+  margin-left: 5px;
+  vertical-align: middle;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-inspection {
+  margin-top: 10px;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-compact-retirements {
+  margin-top: 12px;
+}
+.canvas-suggestion-preview[data-review-mode="compact"]
+  .suggestion-preview-changes:not([hidden]) {
+  margin-top: 18px;
+}
+.canvas-suggestion-preview .is-after .suggestion-preview-prose,
+.canvas-suggestion-preview .is-after .suggestion-preview-prose ins {
+  color: #315bc9;
+}
+@media (pointer: coarse) {
+  .canvas-suggestion-preview .suggestion-inline-actions > button {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+}

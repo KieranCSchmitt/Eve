@@ -1,0 +1,22 @@
+{
+  "name": "eve-workbench",
+  "displayName": "Eve Workbench",
+  "description": "Context, recovery, and real project edits for Eve.",
+  "version": "0.1.0",
+  "publisher": "eve",
+  "license": "UNLICENSED",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Themes"],
+  "main": "./dist/extension.cjs",
+  "activationEvents": ["onStartupFinished"],
+  "extensionKind": ["workspace"],
+  "capabilities": { "untrustedWorkspaces": { "supported": false } },
+  "contributes": {
+    "commands": [
+      { "command": "eve.revealContext", "title": "Eve: Explain This Selection" },
+      { "command": "eve.captureCheckpoint", "title": "Eve: Remember This Place" }
+    ],
+    "menus": { "editor/context": [{ "command": "eve.revealContext", "when": "editorHasSelection", "group": "navigation@2" }] },
+    "themes": [{ "label": "Eve Light", "uiTheme": "vs", "path": "./themes/eve-light.json" }]
+  }
+}

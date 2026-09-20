@@ -1,0 +1,32 @@
+.article-reader { position: relative; overflow-y: auto; padding: 14px clamp(22px, 4vw, 58px) 42px; flex: 1; min-height: 160px; background: #fffdf8; }
+.article-context-action { position: absolute; z-index: 5; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 8px 12px; border: 1px solid #dfe5f4; border-radius: 10px; background: #fff; box-shadow: 0 5px 22px #24355716; color: #5579d4; font-size: 12px; }
+.article-reader > p { font-family: var(--serif); font-size: clamp(18px, 1.5vw, 22px); line-height: 1.65; margin: 0 0 1.1em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.article-source-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 11px; color: var(--muted); margin: 8px 0 28px; }
+.article-source-line span { margin-left: auto; }
+.article-limit { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.article-loading { padding: 34px 0; color: var(--muted); }
+.article-loading p { margin: 14px 0 28px; font-family: var(--serif); font-size: 24px; }
+.article-loading i { display: block; height: 10px; margin: 18px 0; border-radius: 6px; width: 95%; background: linear-gradient(100deg, #e9eafa 15%, #f7f6fc 45%, #e9eafa 80%); background-size: 200% 100%; animation: article-shimmer 2s ease-in-out infinite; }
+.article-loading i:nth-of-type(2) { width: 82%; }.article-loading i:last-child { width: 62%; }
+.article-unavailable { padding: 38px 0; color: var(--muted); max-width: 430px; }
+.article-unavailable h3 { font-family: var(--serif); font-size: 27px; font-weight: 400; color: var(--ink); margin: 18px 0; }
+.article-unavailable p { font-size: 13px; line-height: 1.65; margin-bottom: 18px; }
+.source-search { padding-bottom: 20px; margin-bottom: 18px; border-bottom: 1px solid var(--rule); }
+.source-search label { display: block; font-family: var(--serif); font-size: 21px; margin-bottom: 12px; }
+.source-search > div { display: flex; align-items: center; gap: 7px; padding: 8px 9px; background: white; border: 1px solid var(--rule); border-radius: 9px; }
+.source-search input { width: 100%; min-width: 0; background: transparent; border: 0; font-size: 12px; outline: none; }
+.source-search > div:focus-within { outline: 2px solid #6b89ed66; }
+.source-search button { font-size: 11px; color: #4a69c0; padding: 4px; }
+.source-search small { display: block; font-size: 10px; line-height: 1.5; color: var(--muted); margin-top: 9px; }
+.source-search-results { display: grid; gap: 8px; margin-bottom: 20px; }
+.source-search-results > button { text-align: left; padding: 12px; border: 1px solid var(--rule); border-radius: 9px; background: white; }
+.source-search-results > button:hover { border-color: #9dabdd; background: #f9faff; }
+.source-search-results > button > span { font-family: var(--serif); font-size: 19px; }
+.source-search-results p { font-size: 11px; line-height: 1.55; margin: 7px 0; color: var(--muted); }
+.source-search-results small { display: flex; gap: 5px; align-items: center; font-size: 10px; color: #4a69c0; }
+.source-video-search { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 20px; }
+.source-video-search h3 { font: 24px var(--serif); margin: 10px 0; }.source-video-search p { font-size: 12px; line-height: 1.6; color: var(--muted); margin-bottom: 10px; }
+.source-choices > button { display: flex; align-items: center; gap: 7px; text-align: left; }
+@keyframes article-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .article-loading i { animation: none; } }
+@media (max-width: 850px) { .learning-content { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }.lesson-context { border-left: 0; border-top: 1px solid var(--rule); overflow-y: visible; }.lesson-view .activity-surface { min-height: 280px; }.article-reader { max-height: 60vh; } }

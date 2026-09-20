@@ -1,0 +1,15 @@
+[Unit]
+Description=Eve shell supervisor for session %i
+BindsTo=eve-session@%i.target
+PartOf=eve-session@%i.target
+After=gnome-session-initialized.target
+CollectMode=inactive-or-failed
+
+[Service]
+Type=simple
+EnvironmentFile=%t/eve-session/%i.env
+ExecStart=/usr/bin/python3 /usr/lib/eve-session/supervise.py
+Restart=no
+KillMode=control-group
+TimeoutStopSec=15
+UMask=0077

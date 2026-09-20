@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.eve.shell" path="/org/eve/shell/">
+    <key name="eve-recall" type="as">
+      <default>['&lt;Super&gt;k']</default>
+      <summary>Recall the Eve workspace</summary>
+    </key>
+  </schema>
+</schemalist>

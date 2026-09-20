@@ -1,0 +1,214 @@
+.canvas-block-actions > button.canvas-context-item {
+  opacity: 1;
+  color: #5576b4;
+  flex-shrink: 0;
+}
+.canvas-context-item[aria-disabled="true"] {
+  color: #8993a4;
+  cursor: default;
+}
+.canvas-context-pinned {
+  margin: -8px 0 14px;
+  color: #68778e;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.canvas-context-selection-host {
+  position: relative;
+}
+.canvas-context-selection-host:focus-within > .canvas-editable-copy {
+  background: #fff;
+  padding: 9px 12px;
+  border-color: #bbcaff;
+}
+.canvas-context-selection {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid #d3def4;
+  border-radius: 10px;
+  background: #fffffffa;
+  box-shadow: 0 5px 20px #3553821c;
+  color: #47669f;
+  white-space: normal;
+  font:
+    12px/1.4 "Inter Variable",
+    sans-serif;
+}
+.canvas-context-selection-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+}
+.canvas-context-selection-tools .canvas-context-dismiss {
+  margin-left: auto;
+}
+.canvas-context-question {
+  flex-wrap: nowrap;
+  gap: 3px;
+  width: 304px;
+  max-width: 100%;
+}
+.canvas-context-question-input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  padding: 8px 7px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #283e5d;
+  font: inherit;
+}
+.canvas-context-question-input::placeholder {
+  color: #637b9e;
+}
+.canvas-context-question:focus-within {
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px #dce5f6;
+}
+.canvas-context-question-send {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: #fff;
+  background: #5677ef;
+}
+.canvas-context-question-send[aria-disabled="true"] {
+  background: #eef2fa;
+  color: #8798b5;
+}
+.canvas-context-insight,
+.canvas-context-selection > .canvas-suggestions,
+.canvas-context-selection > .canvas-context-status {
+  width: 100%;
+  min-width: 0;
+  max-height: min(360px, 50vh);
+  overflow: auto;
+  overscroll-behavior: auto;
+}
+.canvas-context-insight {
+  max-height: min(360px, 50vh, var(--canvas-context-insight-height, 360px));
+  padding: 10px;
+  border-top: 1px solid #e2e9f5;
+  color: #334968;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.canvas-context-selection > .canvas-suggestions {
+  margin: 8px 0 0;
+}
+.canvas-context-selection .canvas-suggestion-forward {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.canvas-context-selection > .canvas-context-status {
+  margin: 8px 0 0;
+}
+.canvas-context-passage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  color: #47669f;
+  font-size: 12px;
+  text-align: left;
+}
+.canvas-context-passage svg {
+  flex-shrink: 0;
+}
+.canvas-context-spinner {
+  animation: canvas-context-spin 1.8s linear infinite;
+}
+.canvas-context-selection .canvas-context-cancel {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #47669f;
+}
+.canvas-context-selection .canvas-context-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 32px;
+  border-radius: 6px;
+  color: #65768e;
+}
+.canvas-context-passage:hover:not([aria-disabled="true"]),
+.canvas-context-dismiss:hover {
+  background: #eef3ff;
+}
+.canvas-context-selection [aria-disabled="true"] {
+  color: #748098;
+  cursor: default;
+}
+.canvas-context-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 15px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-left: 2px solid #c5d5f6;
+  border-radius: 0 6px 6px 0;
+  background: #f5f8ff;
+  color: #5b6f90;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.canvas-context-status p {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  flex: 1 1 190px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.canvas-context-status p svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  animation: canvas-context-spin 1.8s linear infinite;
+}
+.canvas-context-status button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px;
+  font-size: 11px;
+  color: #456599;
+}
+.canvas-context-status button[aria-disabled="true"] {
+  color: #748098;
+  cursor: default;
+}
+.canvas-context-status[data-state="error"] {
+  color: #806344;
+  border-left-color: #d8c7aa;
+  background: #fbf8f3;
+}
+@keyframes canvas-context-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-context-status p svg {
+    animation: none;
+  }
+  .canvas-context-spinner {
+    animation: none;
+  }
+}

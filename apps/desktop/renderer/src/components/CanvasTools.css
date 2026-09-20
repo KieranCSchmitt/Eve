@@ -1,0 +1,187 @@
+.canvas-body-copy[data-empty="true"] {
+  position: relative;
+  padding-top: 4px;
+}
+.canvas-body-copy[data-empty="true"] .canvas-editable-copy::placeholder {
+  color: var(--text-tertiary, #989ba3);
+}
+.canvas-writing-help {
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 9px 10px 9px 13px;
+  border: 1px solid rgba(105, 132, 238, 0.17);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary, #6d7482);
+  font-family: "Inter Variable", sans-serif;
+  font-size: 12px;
+  box-shadow: 0 3px 14px rgba(33, 46, 80, 0.035);
+}
+.canvas-writing-help > svg {
+  color: var(--accent, #6585f4);
+}
+.canvas-writing-help-action {
+  border: 0;
+  padding: 4px;
+  color: var(--accent, #6585f4);
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.canvas-writing-help-action:hover {
+  text-decoration: underline;
+}
+.canvas-deadline {
+  position: relative;
+  font-family: "Inter Variable", sans-serif;
+}
+.canvas-deadline-face {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 19px 16px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+}
+.canvas-deadline-face > svg {
+  color: var(--text-secondary, #727989);
+  flex: 0 0 auto;
+}
+.canvas-deadline-value {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 7px;
+}
+.canvas-deadline-time {
+  color: var(--text-primary, #202734);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.canvas-deadline-caption {
+  color: var(--text-secondary, #727989);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.canvas-deadline-face[data-overdue="true"] .canvas-deadline-time {
+  color: var(--text-secondary, #727989);
+}
+.canvas-deadline-editor {
+  position: relative;
+  z-index: 1;
+  margin: 12px 0 0 12px;
+  padding: 13px;
+  border: 1px solid #e4e8f2;
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  box-shadow: 0 5px 22px rgba(36, 49, 82, 0.09);
+}
+.canvas-deadline-editor::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 25px;
+  width: 10px;
+  height: 10px;
+  background: var(--surface, #fff);
+  border-left: 1px solid #e4e8f2;
+  border-top: 1px solid #e4e8f2;
+  transform: rotate(45deg);
+}
+.canvas-deadline-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+  font-size: 12px;
+}
+.canvas-deadline-editor-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.canvas-deadline-editor input {
+  flex: 1 1 160px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 7px;
+  padding: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+.canvas-deadline-editor .canvas-primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.canvas-deadline-zone,
+.canvas-deadline-error {
+  margin: 9px 0 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--text-secondary, #727989);
+}
+.canvas-deadline-error {
+  color: var(--danger, #b34d48);
+}
+.canvas-deadline-clear {
+  margin-top: 9px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary, #727989);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.canvas-deadline-clear:hover {
+  text-decoration: underline;
+}
+.canvas-video-preview {
+  width: 100%;
+  min-height: 155px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  margin: 0 0 15px;
+  border: 1px solid rgba(101, 133, 244, 0.12);
+  border-radius: 10px;
+  background: linear-gradient(140deg, #edf1ff, #f6f8ff 55%, #e5edfd);
+  color: #5879da;
+  cursor: pointer;
+}
+.canvas-video-preview > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "Inter Variable", sans-serif;
+  font-size: 11px;
+}
+.canvas-video-play {
+  display: grid;
+  place-content: center;
+  padding-left: 3px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 3px 13px rgba(51, 74, 131, 0.09);
+}
+.canvas-video-preview:hover {
+  background: #e9eeff;
+}

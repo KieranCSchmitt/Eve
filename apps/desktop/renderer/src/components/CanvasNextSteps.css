@@ -1,0 +1,124 @@
+.canvas-next-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  margin-top: 28px;
+  padding: 19px 0 2px;
+  border-top: 1px solid var(--rule);
+  text-align: left;
+}
+.canvas-next-steps-copy {
+  min-width: 0;
+  flex: 1 1 270px;
+}
+.canvas-next-steps h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #506589;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.canvas-next-steps h2 svg {
+  flex-shrink: 0;
+  color: #5276c4;
+}
+.canvas-next-steps p {
+  margin: 5px 0 0;
+  max-width: 560px;
+  color: #65738a;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.canvas-next-steps[data-state="error"] p {
+  color: #835e47;
+}
+.canvas-next-steps-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.canvas-next-steps-request {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 39px;
+  padding: 9px 13px;
+  border: 1px solid #d3def4;
+  border-radius: 10px;
+  background: linear-gradient(115deg, #fff, #f1f5ff);
+  color: #48669e;
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.5;
+}
+.canvas-next-steps-request:hover:not([aria-disabled="true"]) {
+  border-color: #a4bcef;
+  background: #edf3ff;
+}
+.canvas-next-steps-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 6px;
+  border-radius: 7px;
+  color: #65738a;
+  font-size: 11px;
+}
+.canvas-next-steps-cancel:hover:not([aria-disabled="true"]) {
+  color: #334a71;
+  background: #eef2fa;
+}
+.canvas-next-steps button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.canvas-next-steps button[aria-disabled="true"] {
+  cursor: default;
+}
+.canvas-next-steps-request[aria-disabled="true"] {
+  background: #f6f8fc;
+  color: #64738b;
+}
+.canvas-next-steps-spinner {
+  animation: canvas-next-steps-spin 1.8s linear infinite;
+}
+@keyframes canvas-next-steps-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 650px) {
+  .canvas-next-steps {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .canvas-next-steps-copy {
+    flex-basis: auto;
+  }
+  .canvas-next-steps-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .canvas-next-steps-request {
+    min-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-next-steps-spinner {
+    animation: none;
+  }
+}

@@ -1,0 +1,14 @@
+.canvas-tool-shelf[data-expanded="false"] {
+  margin-top: 24px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.canvas-tool-shelf[data-expanded="false"] .canvas-tool-shelf-heading {
+  margin-bottom: 0;
+}
+
+.canvas-tool-shelf .canvas-tools-toggle {
+  padding: 8px 0;
+  font-size: 12px;
+}

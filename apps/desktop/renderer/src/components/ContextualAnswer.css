@@ -1,0 +1,23 @@
+.contextual-answer { min-width: 0; width: 100%; max-width: 620px; border: 1px solid #dce5fb; border-radius: 12px; padding: 13px 16px 16px; color: #202b42; background: #fff; box-shadow: 0 8px 30px #293f6710; text-align: left; }
+.contextual-answer-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #66728a; font-size: 11px; }
+.contextual-answer-heading .icon-button { width: 26px; height: 26px; flex: 0 0 auto; }
+.contextual-answer-text { font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; max-height: 340px; overflow: auto; }
+.contextual-answer-text p { margin: 8px 0 0; }
+.contextual-answer-text ul, .contextual-answer-text ol { padding-left: 20px; }
+.contextual-answer-sources { border-top: 1px solid #e7ebf3; margin-top: 12px; padding-top: 9px; font-size: 11px; color: #65718a; }
+.contextual-answer-sources blockquote { margin: 3px 0 7px; }
+.inline-assistance-result { max-width: 760px; margin: 20px auto; }
+.inline-assistance-result > .contextual-answer { max-width: none; }
+.shell-footer .footer-center { flex: 1; min-width: 0; max-width: 780px; }
+.shell-footer .canvas-prompt { border-radius: 12px; box-shadow: none; gap: 10px; padding: 3px 6px 3px 13px; width: 100%; }
+.shell-footer .canvas-prompt input { font-size: 13px; padding-block: 8px; }
+.shell-footer .canvas-prompt-submit { height: 30px; width: 30px; border-radius: 9px; }
+.shell-footer .canvas-prompt .canvas-prompt-cancel { background: #eef2fb; color: #536486; }
+.inline-work-review { max-width: 850px; margin: 24px auto; padding: 14px; border: 1px solid #dce5fb; border-radius: 12px; }
+.inline-work-review .proposal-comparison > section:last-child, .inline-work-review .workspace-change-after { background: #edf3ff; color: #2458d2; }
+@media (max-width: 750px) { .shell-footer { gap: 10px; } .shell-footer .find-control { width: 30px; } .shell-footer .find-control span, .shell-footer .find-control kbd, .shell-footer .assistance-control > span:last-child { display: none; } .contextual-answer { padding: 10px 12px; } }
+
+.shell-footer:has(.canvas-prompt) { grid-template-columns: minmax(32px, 1fr) minmax(260px, 680px) minmax(32px, 1fr); }
+@media (max-width: 750px) { .shell-footer:has(.canvas-prompt) { grid-template-columns: 30px minmax(0, 1fr) 30px; padding-inline: 14px; gap: 10px; } }
+.canvas-context-insight > .contextual-answer { border: 0; border-radius: 0; box-shadow: none; padding: 0 4px 4px; background: transparent; }
+.canvas-context-insight .contextual-answer-text { max-height: none; overflow: visible; }

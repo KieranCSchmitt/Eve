@@ -1,0 +1,6 @@
+{
+  "parentMode": "user",
+  "hasOverview": false,
+  "showWelcomeDialog": false,
+  "enabledExtensions": ["eve-session@eve.desktop"]
+}

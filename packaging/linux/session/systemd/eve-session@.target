@@ -1,0 +1,7 @@
+[Unit]
+Description=Eve runtime for graphical session %i
+BindsTo=gnome-session@eve.target
+PartOf=gnome-session@eve.target
+After=gnome-session-initialized.target
+Requires=eve-shell@%i.service
+CollectMode=inactive-or-failed

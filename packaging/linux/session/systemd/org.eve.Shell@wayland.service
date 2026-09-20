@@ -1,0 +1,18 @@
+[Unit]
+Description=GNOME Shell for the Eve Wayland session
+Requisite=gnome-session-initialized.target
+PartOf=gnome-session-initialized.target gnome-session@eve.target
+Before=gnome-session-initialized.target
+After=gnome-session-manager.target
+OnFailure=gnome-session-shutdown.target
+CollectMode=inactive-or-failed
+ConditionEnvironment=XDG_SESSION_TYPE=wayland
+
+[Service]
+Type=notify
+Slice=session.slice
+Environment=DCONF_PROFILE=eve
+Environment=GNOME_SHELL_SESSION_MODE=eve
+ExecStart=/usr/bin/gnome-shell
+Restart=no
+TimeoutStopSec=5

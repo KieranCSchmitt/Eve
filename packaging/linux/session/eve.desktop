@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Eve
+Comment=A place to think
+Exec=/usr/lib/eve-session/launch.py
+TryExec=/usr/bin/eve
+Type=Application
+DesktopNames=Eve;GNOME;
+X-GDM-SessionRegisters=true

@@ -1,0 +1,4 @@
+[GNOME Session]
+Name=Eve
+# Preserve the OEM session service dependencies through the reviewed @eve target drop-in.
+# This is a normal user session. Do not add Kiosk=true.
